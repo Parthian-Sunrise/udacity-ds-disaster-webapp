@@ -30,3 +30,10 @@ repos:
         language: system
         types: [jupyter]
         additional_dependencies: []
+
+      - id: commitizen
+        name: Commitizen check commit message
+        entry: cz check
+        language: system
+        additional_dependencies: []
+        stages: [commit-msg]
