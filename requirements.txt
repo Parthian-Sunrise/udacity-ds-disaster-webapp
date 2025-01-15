@@ -4,8 +4,5 @@ regex
 nltk
 numpy
 scikit-learn
-catboost 
-sentence-transformers
 plotly
 flask
-imbalanced-learn
