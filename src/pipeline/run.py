@@ -68,6 +68,8 @@ def index():
     # TODO: Below is an example - modify to extract data for your own visuals
     genre_counts = df.groupby('genre').count()['message']
     genre_names = list(genre_counts.index)
+
+    ## My own bits - START
     
     # Create category count distribution
     category_counts = df[[col for col in df.columns if col not in ['message','id','original','genre']]].sum().sort_values(ascending=False)
@@ -111,6 +113,7 @@ def index():
         # Store the F1 score in the dictionary
         f1_scores[category] = f1_score_category
 
+    ## My own bits - END
     
     # TODO: Below is an example - modify to create your own visuals
     graphs = [
@@ -132,6 +135,7 @@ def index():
                 }
             }
         },
+        ## My own bits - START
         {
             'data': [
                 Bar(
@@ -159,7 +163,7 @@ def index():
             ],
 
             'layout': {
-                'title': 'Distribution of F1 Scores for Categories (Random State 42, frac=0.3)',
+                'title': 'Distribution of F1 Scores for Categories using test data (Random State 42, frac=0.3)',
                 'yaxis': {
                     'title': "F1 Score"
                 },
@@ -169,6 +173,7 @@ def index():
             }
         }
     ]
+    ## My own bits - END
     
     # encode plotly graphs in JSON
     ids = ["graph-{}".format(i) for i, _ in enumerate(graphs)]

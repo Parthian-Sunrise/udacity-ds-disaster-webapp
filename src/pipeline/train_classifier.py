@@ -45,32 +45,45 @@ df = pd.read_sql(query,engine)
 X_cols = "message"
 Y_cols = [col for col in df.columns if col not in ['message','id','original','genre']]
 
-# Drop NAs for Y_cols 
+# Drop NAs for Y_cols as we cannot predict for NaNs
 df.dropna(how="any",subset=Y_cols,inplace=True)
 
+# Assert Nans are gone
 for col in [X_cols]+Y_cols:
     assert df[col].isna().sum() == 0
 
 # Assign to X and Y
-
 X = df[X_cols]
 Y = df[Y_cols]
 
-# Check there are no columns that are all one value
+# Check there are no columns that are all one value as we cannot classify for these
 constant_cols = [col for col in Y.columns if Y[col].nunique() == 1]
 print(f"Dropping constant columns: {constant_cols}")
 
+# Drop constant columns if present
 Y = Y.drop(columns=constant_cols)
 
 print("Data loaded")
 
-
-## TRAIN MODEL ##
+## TRAIN MODEl ##
 print("Initialise model objects")
 
 # Define feature extraction process / preprocessing
 
 def tokenize(text):
+    """
+    Tokenises and lemmatises input text.
+
+    This function takes a string as input, tokenises it into individual words,
+    lemmatises each word to its base form, converts them to lowercase, and removes
+    any leading or trailing whitespace.
+
+    Args:
+        text (str): The input text to be tokenised and lemmatised.
+
+    Returns:
+        list: A list of clean, lemmatised tokens (words) from the input text.
+    """
     tokens = word_tokenize(text)
     lemmatizer = WordNetLemmatizer()
 
@@ -84,32 +97,29 @@ def tokenize(text):
 # Initialise a logistic regression model
 logreg = LogisticRegression()
 
-# Define pipeline 
+# Define pipeline for our classification problem
 pipeline = Pipeline([
-    ('vect', CountVectorizer(max_features=5000)),  
+    ('vect', CountVectorizer(max_features=5000)),  # Reduce complexity for run time
     ('tfidf', TfidfTransformer()),
     ('moc', MultiOutputClassifier(logreg)),
 ])
 
-
-
 # Split data
 print("Split data")
 
-X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.3,random_state=42)
+X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.3,random_state=42) # Fix random state for reproducibility
 
 # Make grid search object
 print("Generating parameter grid")
 
-# Create parameter grid (had to use fewer combinations due to the hardware constraints of my local machine
+# Create parameter grid (had to use minimal combinations due to the hardware constraints of my local machine
 param_grid = {
-    'vect__max_features': [5000],  # Fixed at 5000 to reduce complexity
     'moc__estimator__C': [0.1, 1.0],  # Two values for C
     'moc__estimator__penalty': ['l2'],  # Use only 'l2' for simplicity
     'moc__estimator__solver': ['liblinear'],  # Keep only 'liblinear'
 }
 
-grid_search = RandomizedSearchCV(pipeline, param_grid,n_iter=4,cv=2,verbose=3) # Perform parallelisation and add verbosity to see progress
+grid_search = RandomizedSearchCV(pipeline, param_grid,n_iter=4,cv=2,verbose=3) # Perform parallelisation and add verbosity to see progress, use randomised for quicker performance
 
 # Fit grid
 print("Fitting Data")
@@ -124,7 +134,7 @@ best_pipeline = grid_search.best_estimator_
 # Predict on the test set
 y_pred = best_pipeline.predict(X_test)
 
-# Generate classification reports for each category
+# Generate classification reports for each category with the best parameters
 category_reports = {}
 for i, category in enumerate(y_test.columns):
     print(f"Category: {category}")
@@ -150,4 +160,5 @@ with open(model_path, 'wb') as file:
 
 print(f"Model saved to {model_path}")
 
-    
+## FINISH ##
+print('終わり！')    
