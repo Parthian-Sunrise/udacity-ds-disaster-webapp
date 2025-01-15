@@ -25,15 +25,12 @@ import pandas as pd
 import numpy as np
 from nltk.tokenize import word_tokenize
 from nltk.stem import WordNetLemmatizer
-from sklearn.pipeline import Pipeline, FeatureUnion
+from sklearn.pipeline import Pipeline
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 from sklearn.multioutput import MultiOutputClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
-from sklearn.compose import ColumnTransformer
-from sklearn.preprocessing import StandardScaler, FunctionTransformer
 from sklearn.linear_model import LogisticRegression
-from sklearn.svm import SVC
 from sklearn.model_selection import RandomizedSearchCV
 
 ## LOAD ##
@@ -85,13 +82,13 @@ def tokenize(text):
     return clean_tokens
 
 # Initialise a logistic regression model
-svc = SVC(kernel='linear', C=1.0, probability=True)
+logreg = LogisticRegression()
 
 # Define pipeline 
 pipeline = Pipeline([
     ('vect', CountVectorizer(max_features=5000)),  
     ('tfidf', TfidfTransformer()),
-    ('moc', MultiOutputClassifier(svc)),
+    ('moc', MultiOutputClassifier(logreg)),
 ])
 
 
@@ -99,18 +96,20 @@ pipeline = Pipeline([
 # Split data
 print("Split data")
 
-X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.3)
+X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.3,random_state=42)
 
 # Make grid search object
 print("Generating parameter grid")
 
+# Create parameter grid (had to use fewer combinations due to the hardware constraints of my local machine
 param_grid = {
-    'vect__max_features': [5000],
-    'moc__estimator__C': [0.1, 5.0],  # Regularization parameter for SVC
-    'moc__estimator__kernel': ['linear'],  # Testing different kernels
+    'vect__max_features': [5000],  # Fixed at 5000 to reduce complexity
+    'moc__estimator__C': [0.1, 1.0],  # Two values for C
+    'moc__estimator__penalty': ['l2'],  # Use only 'l2' for simplicity
+    'moc__estimator__solver': ['liblinear'],  # Keep only 'liblinear'
 }
 
-grid_search = RandomizedSearchCV(pipeline, param_grid,n_iter=100,cv=2,verbose=3) # Perform parallelisation and add verbosity to see progress
+grid_search = RandomizedSearchCV(pipeline, param_grid,n_iter=4,cv=2,verbose=3) # Perform parallelisation and add verbosity to see progress
 
 # Fit grid
 print("Fitting Data")
@@ -150,7 +149,5 @@ with open(model_path, 'wb') as file:
     pickle.dump(best_pipeline, file)
 
 print(f"Model saved to {model_path}")
-
-
 
     

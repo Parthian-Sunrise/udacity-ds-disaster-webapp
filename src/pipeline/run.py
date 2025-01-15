@@ -30,6 +30,9 @@ from flask import render_template, request, jsonify
 from plotly.graph_objs import Bar
 import joblib
 from sqlalchemy import create_engine
+from sklearn.metrics import f1_score
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import classification_report
 
 
 app = Flask(__name__)
@@ -66,7 +69,49 @@ def index():
     genre_counts = df.groupby('genre').count()['message']
     genre_names = list(genre_counts.index)
     
-    # create visuals
+    # Create category count distribution
+    category_counts = df[[col for col in df.columns if col not in ['message','id','original','genre']]].sum().sort_values(ascending=False)
+    category_names = list(category_counts.index)
+
+    # Display F1 scores for each category by predicting on test split from train_classifier, we use the same data processing from the train_classifier.py file
+    X_cols = "message"
+    Y_cols = [col for col in df.columns if col not in ['message','id','original','genre']]
+    
+    # Drop NAs for Y_cols 
+    df.dropna(how="any",subset=Y_cols,inplace=True)
+    
+    for col in [X_cols]+Y_cols:
+        assert df[col].isna().sum() == 0
+    
+    # Assign to X and Y
+    
+    X = df[X_cols]
+    Y = df[Y_cols]
+    
+    # Check there are no columns that are all one value
+    constant_cols = [col for col in Y.columns if Y[col].nunique() == 1]
+    print(f"Dropping constant columns: {constant_cols}")
+    
+    Y = Y.drop(columns=constant_cols)
+
+    X_train, X_test, y_train, y_test = train_test_split(X, Y, test_size=0.3,random_state=42)
+
+    y_pred = model.predict(X_test)
+
+    f1_scores = {}
+
+    plot2_cats = list(Y.columns)
+    for i, category in enumerate(plot2_cats):
+        # Generate the classification report as a dictionary
+        report = classification_report(y_test.iloc[:, i], y_pred[:, i], output_dict=True)
+        
+        # Extract the F1 score for the positive class (label '1')
+        f1_score_category = report['1.0']['f1-score']
+        
+        # Store the F1 score in the dictionary
+        f1_scores[category] = f1_score_category
+
+    
     # TODO: Below is an example - modify to create your own visuals
     graphs = [
         {
@@ -84,6 +129,42 @@ def index():
                 },
                 'xaxis': {
                     'title': "Genre"
+                }
+            }
+        },
+        {
+            'data': [
+                Bar(
+                    x=category_names,
+                    y=category_counts
+                )
+            ],
+
+            'layout': {
+                'title': 'Distribution of Message Categories',
+                'yaxis': {
+                    'title': "Count"
+                },
+                'xaxis': {
+                    'title': "Category"
+                }
+            }
+        },
+        {
+            'data': [
+                Bar(
+                    x=list(f1_scores.keys()),
+                    y=list(f1_scores.values())
+                )
+            ],
+
+            'layout': {
+                'title': 'Distribution of F1 Scores for Categories (Random State 42, frac=0.3)',
+                'yaxis': {
+                    'title': "F1 Score"
+                },
+                'xaxis': {
+                    'title': "Category"
                 }
             }
         }
