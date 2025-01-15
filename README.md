@@ -33,7 +33,7 @@ To replicate the analysis or run the code locally, follow these steps:
    git clone https://github.com/Parthian-Sunrise/udacity-ds-project-blog.git
 2. **Navigate to the repository:**
    ```bash
-   cd udacity-ds-project-blog
+   cd udacity-ds-disaster-web-app
 3. **Create virtual environment (optrional)**
    ```bash
    python3 -m venv venv
